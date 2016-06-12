@@ -1,0 +1,19 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  patient: one
+  date: 2016-06-11 16:26:59
+  name_original: MyString
+  name: MyString
+  qualifier: MyString
+  value_original: MyString
+  value: MyString
+
+two:
+  patient: two
+  date: 2016-06-11 16:26:59
+  name_original: MyString
+  name: MyString
+  qualifier: MyString
+  value_original: MyString
+  value: MyString

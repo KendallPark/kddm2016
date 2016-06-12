@@ -1,0 +1,17 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  pid: 1
+  infection: false
+  sex: MyString
+  surgery_time: 2016-06-11 16:05:21
+  infection_time: 2016-06-11 16:05:21
+  dob: 2016-06-11
+
+two:
+  pid: 1
+  infection: false
+  sex: MyString
+  surgery_time: 2016-06-11 16:05:21
+  infection_time: 2016-06-11 16:05:21
+  dob: 2016-06-11
