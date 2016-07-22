@@ -7,8 +7,9 @@ class CreateLabs < ActiveRecord::Migration[5.0]
       t.string :name, null: false
       t.string :qualifier
       t.string :value_original, null: false
-      t.string :value, null: false
+      t.numeric :value, null: false
       t.integer :pid, null: false
+      t.boolean :fuzzy_name, null: false, default: false
 
       t.timestamps
     end
