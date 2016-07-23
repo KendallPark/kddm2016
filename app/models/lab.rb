@@ -1,5 +1,10 @@
 class Lab < ApplicationRecord
   belongs_to :patient
+  belongs_to :lab_type
+  has_many :codons, foreign_key: :value_start_id
+  has_many :codons, foreign_key: :value_end_id
+  has_many :codons, foreign_key: :date_start_id
+  has_many :codons, foreign_key: :date_end_id
   validates_numericality_of :value
   validates_presence_of :patient, :date, :name_original, :name, :value, :value_original, :pid
 

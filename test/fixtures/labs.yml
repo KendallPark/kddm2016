@@ -1,19 +1,49 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
+lab_one:
   patient: one
-  date: 2016-06-11 16:26:59
+  date: 2016-06-11 09:26:59
   name_original: MyString
-  name: MyString
+  name: Lab 1
   qualifier: MyString
   value_original: MyString
-  value: MyString
+  value: 10.0
+  lab_type: lab_type_one
+  pid: 1
+  hours_after_surgery: 10
 
-two:
+lab_two:
   patient: two
-  date: 2016-06-11 16:26:59
+  date: 2016-06-11 11:26:59
   name_original: MyString
-  name: MyString
+  name: Lab 2
   qualifier: MyString
   value_original: MyString
-  value: MyString
+  value: 20.0
+  lab_type: lab_type_two
+  pid: 2
+  hours_after_surgery: 3
+
+lab_three:
+  patient: one
+  date: 2016-06-11 10:26:59
+  name_original: MyString
+  name: Lab 1
+  qualifier: MyString
+  value_original: MyString
+  value: 5.0
+  lab_type: lab_type_one
+  pid: 1
+  hours_after_surgery: -2
+
+lab_four:
+  patient: two
+  date: 2016-06-11 13:26:59
+  name_original: MyString
+  name: Lab 2
+  qualifier: MyString
+  value_original: MyString
+  value: 2.0
+  lab_type: lab_type_two
+  pid: 2
+  hours_after_surgery: -10
