@@ -1,0 +1,16 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+codon_one:
+  lab_type: lab_type_one
+  value_start: lab_one
+  value_end: lab_three
+  date_start: lab_one
+  date_end: lab_three
+
+
+codon_two:
+  lab_type: lab_type_two
+  value_start: lab_two
+  value_end: lab_four
+  date_start: lab_two
+  date_end: lab_four
