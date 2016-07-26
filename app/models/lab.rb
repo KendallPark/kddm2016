@@ -8,6 +8,10 @@ class Lab < ApplicationRecord
   validates_numericality_of :value
   validates_presence_of :patient, :date, :name_original, :name, :value, :value_original, :pid
 
+  scope :by_date, -> { order(date: :asc) }
+  scope :by_value, -> { order(value: :asc) }
+  scope :by_hours, -> { order(hours_after_surgery: :asc)}
+
   def self.test_names
     self.pluck(:name).uniq
   end

@@ -11,10 +11,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160723142014) do
+ActiveRecord::Schema.define(version: 20160725031608) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+  enable_extension "hstore"
 
   create_table "codons", force: :cascade do |t|
     t.integer  "lab_type_id"
@@ -24,6 +25,11 @@ ActiveRecord::Schema.define(version: 20160723142014) do
     t.integer  "date_end_id"
     t.datetime "created_at",     null: false
     t.datetime "updated_at",     null: false
+    t.integer  "true_positive"
+    t.integer  "false_positive"
+    t.integer  "true_negative"
+    t.integer  "false_negative"
+    t.decimal  "fitness"
     t.index ["date_end_id"], name: "index_codons_on_date_end_id", using: :btree
     t.index ["date_start_id"], name: "index_codons_on_date_start_id", using: :btree
     t.index ["lab_type_id"], name: "index_codons_on_lab_type_id", using: :btree
@@ -51,6 +57,8 @@ ActiveRecord::Schema.define(version: 20160723142014) do
     t.datetime "updated_at",         null: false
     t.integer  "number_of_patients", null: false
     t.integer  "number_of_labs",     null: false
+    t.hstore   "patient_cache"
+    t.hstore   "infection_cache"
   end
 
   create_table "labs", force: :cascade do |t|

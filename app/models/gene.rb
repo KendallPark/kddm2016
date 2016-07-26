@@ -7,29 +7,11 @@ class Gene < ApplicationRecord
 
 private
 
-  def evaluate_fitness
+  def evaluate_fitness!
+    fitness = 0
     codons.each do |codon|
-    end
-  end
-
-  def evaluate_codon(codon)
-    range_start = codon.range_start
-    range_end = codon.range_end
-    if range_start >= 0 && range_end >= 0
-      [range_start, range_end]
-    elsif range_start < 0 && range_end < 0
-      [range_start, range_end]
-    elsif range_start < 0 && range_end >= 0
-      :|
-    elsif range_start >= 0 && range_end < 0
-      :&
-    end
-  end
-
-  def range_proc(range_start, range_end, patient_id)
-    if range_start < range_end
-      lam = lambda do |range_start, range_end|
-        Patient.find(patient_id).labs.last
+      codon.fitness! do |t_pos, t_neg, f_pos, f_neg|
+        fitness += yield(t_pos, t_neg, f_pos, f_neg)
       end
     end
   end
