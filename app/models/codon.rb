@@ -3,8 +3,8 @@ class Codon < ApplicationRecord
   validates :lab_type, presence: true
   validates_presence_of :val_start, :val_end, :hours_after_surgery
   validates_uniqueness_of :lab_type, scope: [:val_start, :val_end, :hours_after_surgery]
-
   scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc)}
+  serialize :dx_cache, ActiveRecord::Coders::BignumSerializer
 
   before_validation do |codon|
     codon.lab_type ||= LabType.by_number_of_patients.first
@@ -78,6 +78,8 @@ class Codon < ApplicationRecord
     labs_earlier = Hash[lab_type.labs.where("hours_after_surgery <=?", hours_after_surgery).select(:patient_id, :hours_after_surgery, :value).group(:patient_id, :hours_after_surgery, :value).order(hours_after_surgery: :desc).distinct(:patient_id).as_json.map { |lab| [lab["patient_id"], lab] } ]
     labs_later = Hash[lab_type.labs.where("hours_after_surgery >=?", hours_after_surgery).select(:patient_id, :hours_after_surgery, :value).group(:patient_id, :hours_after_surgery, :value).order(hours_after_surgery: :asc).distinct(:patient_id).as_json.map { |lab| [lab["patient_id"], lab] } ]
 
+    patient_dx = {}
+
     lab_type.patient_cache.each do |patient_id_s, labs_by_id|
       patient_id = patient_id_s.to_i
 
@@ -97,25 +99,27 @@ class Codon < ApplicationRecord
       infected = lab_type.infected?(patient_id)
       # if the start is less than the we evalute inclusively
       if val_start <= val_end && value >= val_start && value <= val_end
-        ddx = true
+        dx = true
       elsif val_start > val_end && (value < val_start || value > val_end)
-        ddx = true
+        dx = true
       else
-        ddx = false
+        dx = false
       end
 
-      if(ddx == true && infected == true)
+      patient_dx[patient_id] = dx
+
+      if(dx == true && infected == true)
         true_positive += 1
-      elsif(ddx == true && infected == false)
+      elsif(dx == true && infected == false)
         false_positive += 1
-      elsif(ddx == false && infected == true)
+      elsif(dx == false && infected == true)
         false_negative += 1
-      elsif(ddx == false && infected == false)
+      elsif(dx == false && infected == false)
         true_negative +=1
       end
 
     end
-    update!(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative)
+    update!(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative, dx_cache: LabType.cache(patient_dx))
   end
 
   def fitness!

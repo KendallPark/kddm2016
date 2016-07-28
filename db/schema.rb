@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160728001958) do
+ActiveRecord::Schema.define(version: 20160728150930) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -33,6 +33,7 @@ ActiveRecord::Schema.define(version: 20160728001958) do
     t.decimal  "hours_after_surgery", null: false
     t.decimal  "val_start",           null: false
     t.decimal  "val_end",             null: false
+    t.string   "dx_cache"
     t.index ["date_end_id"], name: "index_codons_on_date_end_id", using: :btree
     t.index ["date_start_id"], name: "index_codons_on_date_start_id", using: :btree
     t.index ["lab_type_id"], name: "index_codons_on_lab_type_id", using: :btree
@@ -66,6 +67,7 @@ ActiveRecord::Schema.define(version: 20160728001958) do
     t.decimal  "val_min",            null: false
     t.decimal  "hours_max",          null: false
     t.decimal  "hours_min",          null: false
+    t.string   "infect_cache"
   end
 
   create_table "labs", force: :cascade do |t|

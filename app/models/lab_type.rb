@@ -3,9 +3,10 @@ class LabType < ApplicationRecord
   has_many :patients, through: :labs
   scope :by_number_of_patients, -> { order(number_of_patients: :desc) }
   scope :by_number_of_labs, -> { order(number_of_labs: :desc)}
-  serialize :patient_cache, ActiveRecord::Coders::NestedHstore
-  # serialize :infection_cache, ActiveRecord::Coders::BooleanStore
   validates_presence_of :val_max, :val_min, :hours_max, :hours_min
+  validates_presence_of :infect_cache
+  serialize :patient_cache, ActiveRecord::Coders::NestedHstore
+  serialize :infect_cache, ActiveRecord::Coders::BignumSerializer
 
   def number_of_labs!
     number_of_labs = labs.count
@@ -29,6 +30,18 @@ class LabType < ApplicationRecord
       labs_by_patient[lab["patient_id"]][lab_id] = lab
     end
     update!(patient_cache: labs_by_patient)
+  end
+
+  def self.cache(dx_by_id)
+    # convert string keys and values to ints if not already strings
+    dx_by_id = Hash[dx_by_id.to_a.map{|a| [a.first.to_i, a.last == true || a.last == "true"]}]
+    temp = 0
+    dx_by_id.keys.sort.each do |key|
+      dx = dx_by_id[key]
+      temp <<= 1
+      temp |= 1 if dx
+    end
+    temp
   end
 
   def cache_infection!
