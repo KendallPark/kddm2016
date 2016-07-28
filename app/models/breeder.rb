@@ -1,7 +1,7 @@
 class Breeder
   def initialize(options={})
     @codons = options[:codons]
-    @mutation_rate = options[:mutation_rate] || 0.05
+    @mutation_rate = options[:mutation_rate] || 0.1
   end
 
   def breed!
@@ -9,8 +9,7 @@ class Breeder
     @codons.shuffle.each_slice(2) do |codon_1, codon_2|
       return unless codon_2
       baby = mate(codon_1, codon_2)
-      baby.save!
-      babies << baby
+      babies << baby if baby.save
     end
     babies
   end

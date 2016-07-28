@@ -1,9 +1,12 @@
 class AllelePool
   def initialize(options={})
-    @lab_type = options[:lab_type] || LabType.by_number_of_patients.first
+    @lab_type = LabType.by_number_of_patients[options[:lab_index]] if options[:lab_index]
+    @lab_type ||= options[:lab_type] || LabType.by_number_of_patients.first
     @size = options[:size] || 100
     @codons = options[:codons] || load_fittest_codons!
     @selection_size = options[:selection_size] || 10
+    new_codons! if @codons.empty?
+    load_fittest_codons!
   end
 
   attr_reader :lab_type, :size, :codons, :selection_size
@@ -28,11 +31,42 @@ class AllelePool
     alpha.specificity
   end
 
-  def alpha_days
-    "#{alpha.end_hours/60} - #{alpha.start_hours/60}"
+  def alpha_ppv
+    alpha.ppv
   end
 
-  def breed_generations!(generations=10)
+  def alpha_npv
+    alpha.npv
+  end
+
+  def alpha_days
+    # "#{alpha.end_hours/60} - #{alpha.start_hours/60}"
+    "#{alpha.start_hours/60}"
+  end
+
+  def alpha_range
+    "#{alpha.start_value} - #{alpha.end_value}"
+  end
+
+  def stats
+    <<-MESSAGE
+    ////////////////////////////////////////
+    // #{lab_type.name}
+    ////////////////////////////////////////
+    Days: #{alpha_days}
+    Range: #{alpha_range}
+    Sens: #{(alpha_sens*100).to_i}%
+    Spec: #{(alpha_spec*100).to_i}%
+    +LR: #{alpha.lr_pos}
+    -LR: #{alpha.lr_neg}
+    PPV: #{(alpha_ppv*100).to_i}%
+    NPV: #{(alpha_npv*100).to_i}%
+    Fit: #{alpha_fitness}
+
+    MESSAGE
+  end
+
+  def breed_generations!(generations=1)
     generations.times do
       load_fittest_codons!
       breed_fittest!
@@ -41,10 +75,8 @@ class AllelePool
 
   def breed_fittest!
     babies = []
-    Parallel.each((0..selection_size/2), in_threads: 4) do
-      ActiveRecord::Base.connection_pool.with_connection do
-        babies.concat(Breeder.new({codons: select_codons}).breed!)
-      end
+    selection_size.times do
+      babies.concat(Breeder.new({codons: select_codons}).breed!)
     end
     compute_fitness!(babies)
   end
@@ -56,9 +88,9 @@ class AllelePool
   def new_codons!
     size.times do
       codon = Codon.new(lab_type: lab_type)
-      codon.save!
-      codons << codon
+      codons << codon if codon.save
     end
+    compute_fitness!(codons)
   end
 
   def compute_stragglers!
@@ -80,12 +112,16 @@ class AllelePool
 
   def compute_fitness!(the_codons)
     the_codons ||= codons
-    Parallel.each(the_codons, in_threads: 4) do |codon|
-      ActiveRecord::Base.connection_pool.with_connection do
-        codon.fitness! do |true_pos, true_neg, false_pos, false_neg, sens, spec|
-          correctly_identified = (true_pos.to_f + true_neg.to_f)/patient_popuation
-          not_correctly_identified = 1 - correctly_identified
-          (sens**0.5 + spec**0.5)**2 + correctly_identified - not_correctly_identified
+    the_codons.each do |codon|
+      if codon.invalid?
+        codon.destroy!
+      else
+        codon.fitness! do |true_pos, true_neg, false_pos, false_neg, sens, spec, ppv, npv, lr_pos, lr_neg|
+          if sens > 0.5 && spec > 0.5
+            (sens+ppv)/2
+          else
+            (sens+ppv)/2*0.1
+          end
         end
       end
     end
