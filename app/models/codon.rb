@@ -1,36 +1,18 @@
 class Codon < ApplicationRecord
   belongs_to :lab_type
-  belongs_to :value_start, class_name: :Lab, foreign_key: :value_start_id
-  belongs_to :value_end, class_name: :Lab, foreign_key: :value_end_id
-  belongs_to :date_start, class_name: :Lab, foreign_key: :date_start_id
-  belongs_to :date_end, class_name: :Lab, foreign_key: :date_end_id
-
   validates :lab_type, presence: true
-  validates_presence_of :value_start
-  validates_presence_of :value_end
-  validates_presence_of :date_start
-  validates_presence_of :date_end
-  validates_uniqueness_of :value_start, scope: [:value_end, :date_start, :date_end, :lab_type]
+  validates_presence_of :val_start, :val_end, :hours_after_surgery
+  validates_uniqueness_of :lab_type, scope: [:val_start, :val_end, :hours_after_surgery]
 
   scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc)}
 
   before_validation do |codon|
     codon.lab_type ||= LabType.by_number_of_patients.first
-    max_value = codon.lab_type.number_of_labs
-    values = [Random.rand(max_value), Random.rand(max_value)].sort
-    dates = [Random.rand(max_value), Random.rand(max_value)].sort
 
-    unless codon.value_start && codon.value_end
-      labs = lab_type.labs.by_value
-      codon.value_start ||= labs[values.first]
-      codon.value_end ||= labs[values.last]
-    end
+    codon.val_start ||= Random.rand(lab_type.val_min..lab_type.val_max)
+    codon.val_end ||= Random.rand(lab_type.val_min..lab_type.val_max)
 
-    unless codon.date_start && codon.date_end
-      labs = lab_type.labs.by_hours
-      codon.date_start ||= labs[dates.first]
-      codon.date_end ||= labs[dates.last]
-    end
+    codon.hours_after_surgery ||= Random.rand(lab_type.hours_min..lab_type.hours_max)
   end
 
   after_create do |codon|
@@ -42,19 +24,19 @@ class Codon < ApplicationRecord
   end
 
   def start_value
-    value_start.value
+    val_start
   end
 
   def end_value
-    value_end.value
+    val_end
   end
 
-  def start_hours
-    date_start.hours_after_surgery
+  def days_after_surgery
+    hours_after_surgery/60
   end
 
-  def end_hours
-    date_end.hours_after_surgery
+  def range
+    "#{val_start}-#{val_end}"
   end
 
   def sensitivity
@@ -92,43 +74,54 @@ class Codon < ApplicationRecord
     false_positive = 0
     false_negative = 0
     true_negative = 0
-    lab_type.patient_cache.each do |patient_id, labs_by_id|
-      # labs = Lab.where(patient_id: patient_id.to_i, lab_type_id: lab_type_id).where(Lab.arel_table[:hours_after_surgery].gt(start_hours)).where(Lab.arel_table[:hours_after_surgery].lt(end_hours)).pluck(:id).as_json
-      lab_higher = Lab.by_value.where(patient_id: patient_id.to_i, lab_type_id: lab_type_id).where(Lab.arel_table[:hours_after_surgery].gteq(end_hours)).limit(1).first
-      lab_lower = Lab.by_value.where(patient_id: patient_id.to_i, lab_type_id: lab_type_id).where(Lab.arel_table[:hours_after_surgery].lteq(end_hours)).limit(1).first
-      if lab_higher && lab_lower
-        avg = (end_hours - lab_higher.hours_after_surgery).abs < (end_hours - lab_lower.hours_after_surgery).abs ? lab_higher.value : lab_lower.value
-      elsif lab_higher
-        avg = lab_higher.value
-      elsif lab_lower
-        avg = lab_lower.value
+
+    labs_earlier = Hash[lab_type.labs.where("hours_after_surgery <=?", hours_after_surgery).select(:patient_id, :hours_after_surgery, :value).group(:patient_id, :hours_after_surgery, :value).order(hours_after_surgery: :desc).distinct(:patient_id).as_json.map { |lab| [lab["patient_id"], lab] } ]
+    labs_later = Hash[lab_type.labs.where("hours_after_surgery >=?", hours_after_surgery).select(:patient_id, :hours_after_surgery, :value).group(:patient_id, :hours_after_surgery, :value).order(hours_after_surgery: :asc).distinct(:patient_id).as_json.map { |lab| [lab["patient_id"], lab] } ]
+
+    lab_type.patient_cache.each do |patient_id_s, labs_by_id|
+      patient_id = patient_id_s.to_i
+
+      lab_earlier = labs_earlier[patient_id]
+      lab_later = labs_later[patient_id]
+
+      if lab_later && lab_earlier
+        value = (hours_after_surgery - lab_later['hours_after_surgery']).abs < (hours_after_surgery - lab_earlier['hours_after_surgery']).abs ? lab_later['value'] : lab_earlier['value']
+      elsif lab_later
+        value = lab_later['value']
+      elsif lab_earlier
+        value = lab_earlier['value']
       end
-      if avg
-        # avg = labs.map {|lab_id| labs_by_id[lab_id.to_s]["value"]}.reduce(:+)/labs.count
-        infected = lab_type.infected?(patient_id)
-        if avg >= start_value && avg <= end_value
-          ddx = true
-        else
-          ddx = false
-        end
-        if(ddx == true && infected == true)
-          true_positive += 1
-        elsif(ddx == true && infected == false)
-          false_positive += 1
-        elsif(ddx == false && infected == true)
-          false_negative += 1
-        elsif(ddx == false && infected == false)
-          true_negative +=1
-        end
+
+      next unless value
+
+      infected = lab_type.infected?(patient_id)
+      # if the start is less than the we evalute inclusively
+      if val_start <= val_end && value >= val_start && value <= val_end
+        ddx = true
+      elsif val_start > val_end && (value < val_start || value > val_end)
+        ddx = true
+      else
+        ddx = false
       end
+
+      if(ddx == true && infected == true)
+        true_positive += 1
+      elsif(ddx == true && infected == false)
+        false_positive += 1
+      elsif(ddx == false && infected == true)
+        false_negative += 1
+      elsif(ddx == false && infected == false)
+        true_negative +=1
+      end
+
     end
-    update(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative)
+    update!(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative)
   end
 
   def fitness!
     evaluate! unless true_positive && true_negative && false_positive && false_negative
     fitness = yield(true_positive, true_negative, false_positive, false_negative, sensitivity, specificity, ppv, npv, lr_pos, lr_neg)
-    update!(fitness: fitness) if valid?
+    update!(fitness: fitness)
     fitness
   end
 

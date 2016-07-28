@@ -5,6 +5,7 @@ class LabType < ApplicationRecord
   scope :by_number_of_labs, -> { order(number_of_labs: :desc)}
   serialize :patient_cache, ActiveRecord::Coders::NestedHstore
   # serialize :infection_cache, ActiveRecord::Coders::BooleanStore
+  validates_presence_of :val_max, :val_min, :hours_max, :hours_min
 
   def number_of_labs!
     number_of_labs = labs.count
