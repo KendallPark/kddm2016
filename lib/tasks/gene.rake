@@ -18,8 +18,6 @@ namespace :gene do
   task :codon, [:index] => :environment do |t, args|
     index = args[:index].to_i || 0
     pool = AllelePool.new({lab_index: index})
-    pool.new_codons!
-    pool.load_fittest_codons!
     5.times do
       puts pool.stats
       pool.breed_generations!
