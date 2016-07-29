@@ -4,7 +4,6 @@ namespace :gene do
     Parallel.each((0..200), in_threads: 8) do |i|
       ActiveRecord::Base.connection_pool.with_connection do
         pool = AllelePool.new({lab_index: i})
-        pool.load_fittest_codons!
         5.times do
           puts pool.stats
           pool.breed_generations!
@@ -28,7 +27,11 @@ namespace :gene do
 
   desc "something"
   task :refit => :environment do
-    pool = AllelePool.new.compute_fitness!(Codon.all)
+    pool = AllelePool.new
+    Codon.where("updated_at <= ?", 2.hours.ago).in_batches(of: 100) do |codons|
+      puts "yay"
+      pool.compute_fitness!(codons)
+    end
   end
 
   desc "purge"
@@ -39,6 +42,16 @@ namespace :gene do
           deleted = codon.delete if codon.invalid?
           puts "#{codon.id} deleted" if deleted
         end
+      end
+    end
+  end
+
+  task :cull => :environment do
+    LabType.in_batches(of: 10).each do |lab_types|
+      lab_types.each do |lab_type|
+        fittest = lab_type.codons.by_fitness.first
+        next unless fittest
+        lab_type.codons.where.not(id: fittest.id).delete_all
       end
     end
   end
