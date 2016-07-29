@@ -3,6 +3,7 @@ class Codon < ApplicationRecord
   validates :lab_type, presence: true
   validates_presence_of :val_start, :val_end, :hours_after_surgery
   validates_uniqueness_of :lab_type, scope: [:val_start, :val_end, :hours_after_surgery]
+  default_scope -> { where(gilded: false) }
   scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc)}
   serialize :dx_cache, ActiveRecord::Coders::BignumSerializer
 

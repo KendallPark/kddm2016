@@ -14,6 +14,11 @@ namespace :gene do
     end
   end
 
+  task :gild, [:codon_id] => :environment do |t, args|
+    codon_id = args[:codon_id]
+    Codon.find(codon_id).update!(gilded: true)
+  end
+
   task :codon, [:index] => :environment do |t, args|
     index = args[:index].to_i || 0
     pool = AllelePool.new({lab_index: index})
@@ -51,6 +56,7 @@ namespace :gene do
       lab_types.each do |lab_type|
         fittest = lab_type.codons.by_fitness.first
         next unless fittest
+        fittest.update!(gilded: true)
         lab_type.codons.where.not(id: fittest.id).delete_all
       end
     end

@@ -9,6 +9,33 @@ class LabType < ApplicationRecord
   serialize :patient_cache, ActiveRecord::Coders::NestedHstore
   serialize :infect_cache, ActiveRecord::Coders::BignumSerializer
 
+  def update_min_max!
+    val_min!
+    val_max!
+    hours_min!
+    hours_max!
+  end
+
+  def val_min!
+    update!(val_min: labs.minimum(:value))
+    val_min
+  end
+
+  def val_max!
+    update!(val_max: labs.maximum(:value))
+    val_max
+  end
+
+  def hours_min!
+    update!(hours_min: labs.minimum(:hours_after_surgery))
+    hours_min
+  end
+
+  def hours_max!
+    update!(hours_max: labs.maximum(:hours_after_surgery))
+    hours_max
+  end
+
   def number_of_labs!
     number_of_labs = labs.count
     update(number_of_labs: number_of_labs)

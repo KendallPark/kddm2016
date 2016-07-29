@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160728150930) do
+ActiveRecord::Schema.define(version: 20160729130535) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -23,17 +23,18 @@ ActiveRecord::Schema.define(version: 20160728150930) do
     t.integer  "value_end_id"
     t.integer  "date_start_id"
     t.integer  "date_end_id"
-    t.datetime "created_at",          null: false
-    t.datetime "updated_at",          null: false
+    t.datetime "created_at",                          null: false
+    t.datetime "updated_at",                          null: false
     t.integer  "true_positive"
     t.integer  "false_positive"
     t.integer  "true_negative"
     t.integer  "false_negative"
     t.decimal  "fitness"
-    t.decimal  "hours_after_surgery", null: false
-    t.decimal  "val_start",           null: false
-    t.decimal  "val_end",             null: false
+    t.decimal  "hours_after_surgery",                 null: false
+    t.decimal  "val_start",                           null: false
+    t.decimal  "val_end",                             null: false
     t.string   "dx_cache"
+    t.boolean  "gilded",              default: false
     t.index ["date_end_id"], name: "index_codons_on_date_end_id", using: :btree
     t.index ["date_start_id"], name: "index_codons_on_date_start_id", using: :btree
     t.index ["lab_type_id"], name: "index_codons_on_lab_type_id", using: :btree
@@ -84,6 +85,7 @@ ActiveRecord::Schema.define(version: 20160728150930) do
     t.datetime "updated_at",                          null: false
     t.integer  "lab_type_id",                         null: false
     t.decimal  "hours_after_surgery",                 null: false
+    t.boolean  "outlier",             default: false
     t.index ["lab_type_id"], name: "index_labs_on_lab_type_id", using: :btree
     t.index ["patient_id"], name: "index_labs_on_patient_id", using: :btree
   end
