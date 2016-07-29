@@ -1,16 +1,16 @@
 namespace :gene do
   desc "Dumps the database to backups"
-  task :codons => :environment do
-    Parallel.each((0..200), in_threads: 8) do |i|
-      ActiveRecord::Base.connection_pool.with_connection do
-        pool = AllelePool.new({lab_index: i})
-        5.times do
-          puts pool.stats
-          pool.breed_generations!
-        end
-        pool.load_fittest_codons!
+  task :codons, [:index] => :environment do |t, args|
+    index = args[:index].to_i || 0
+    (index...200).each do |i|
+      puts "Index: #{i}"
+      pool = AllelePool.new({lab_index: i})
+      8.times do
         puts pool.stats
+        pool.breed_generations!
       end
+      pool.load_fittest_codons!
+      puts pool.stats
     end
   end
 
