@@ -2,7 +2,7 @@ class AllelePool
   def initialize(options={})
     @lab_type = LabType.by_number_of_patients[options[:lab_index]] if options[:lab_index]
     @lab_type ||= options[:lab_type] || LabType.by_number_of_patients.first
-    @size = options[:size] || 100
+    @size = options[:size] || 1000
     @codons = options[:codons] || load_fittest_codons!
     @selection_size = options[:selection_size] || 10
     new_codons!

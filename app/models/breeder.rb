@@ -1,7 +1,7 @@
 class Breeder
   def initialize(options={})
     @codons = options[:codons]
-    @mutation_rate = options[:mutation_rate] || 0.05
+    @mutation_rate = options[:mutation_rate] || 0.1
   end
 
   def breed!
