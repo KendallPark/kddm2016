@@ -4,7 +4,7 @@ class Codon < ApplicationRecord
   validates_presence_of :val_start, :val_end, :hours_after_surgery
   validates_uniqueness_of :lab_type, scope: [:val_start, :val_end, :hours_after_surgery]
   default_scope -> { where(gilded: false) }
-  scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc)}
+  scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc).select("DISTINCT(fitness)") }
   serialize :dx_cache, ActiveRecord::Coders::BignumSerializer
 
   before_validation do |codon|
