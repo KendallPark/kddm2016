@@ -17,22 +17,22 @@ class LabType < ApplicationRecord
   end
 
   def val_min!
-    update!(val_min: labs.minimum(:value))
+    update!(val_min: labs.minimum(:value) || 0)
     val_min
   end
 
   def val_max!
-    update!(val_max: labs.maximum(:value))
+    update!(val_max: labs.maximum(:value) || 0)
     val_max
   end
 
   def hours_min!
-    update!(hours_min: labs.minimum(:hours_after_surgery))
+    update!(hours_min: labs.minimum(:hours_after_surgery) || 0)
     hours_min
   end
 
   def hours_max!
-    update!(hours_max: labs.maximum(:hours_after_surgery))
+    update!(hours_max: labs.maximum(:hours_after_surgery) || 0)
     hours_max
   end
 

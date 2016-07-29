@@ -51,6 +51,11 @@ namespace :gene do
     end
   end
 
+  task :shun_outliers => :environment do
+    outliers = Lab.where(value: -999).update(outlier: true)
+    outliers.pluck(:lab_type_id).uniq.each { |id| LabType.find(id).update_min_max! }
+  end
+
   task :cull => :environment do
     LabType.in_batches(of: 10).each do |lab_types|
       lab_types.each do |lab_type|
