@@ -4,7 +4,10 @@ class Codon < ApplicationRecord
   validates_presence_of :val_start, :val_end, :hours_after_surgery
   validates_uniqueness_of :lab_type, scope: [:val_start, :val_end, :hours_after_surgery]
   default_scope -> { where(gilded: false) }
-  scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc).select("DISTINCT(fitness)") }
+  scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc) }
+  scope :by_uniq_fitness, -> { where.not(fitness: nil).order(fitness: :desc).select('distinct on (fitness) *').to_a }
+  scope :gilded, -> { unscoped.where(gilded: true) }
+  scope :by_power, -> { where.not(fitness: nil).order("((true_positive + true_negative)*fitness) desc") }
   serialize :dx_cache, ActiveRecord::Coders::BignumSerializer
 
   before_validation do |codon|
@@ -33,11 +36,30 @@ class Codon < ApplicationRecord
   end
 
   def days_after_surgery
-    hours_after_surgery/60
+    hours_after_surgery/24
   end
 
   def range
     "#{val_start}-#{val_end}"
+  end
+
+  def stats
+    <<-MESSAGE
+    ////////////////////////////////////////
+    // #{lab_type.name} n = #{lab_type.number_of_patients}
+    ////////////////////////////////////////
+    ID: #{id}
+    Days: #{days_after_surgery}
+    Range: #{range}
+    Sens: #{(sensitivity*100).to_i}%
+    Spec: #{(specificity*100).to_i}%
+    +LR: #{lr_pos}
+    -LR: #{lr_neg}
+    PPV: #{(ppv*100).to_i}%
+    NPV: #{(npv*100).to_i}%
+    Fit: #{fitness}
+
+    MESSAGE
   end
 
   def sensitivity

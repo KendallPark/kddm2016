@@ -1,7 +1,7 @@
 namespace :gene do
   desc "Dumps the database to backups"
   task :codons, [:index] => :environment do |t, args|
-    index = args[:index].to_i || 0
+    index = (args[:index] || 0).to_i
     (index...200).each do |i|
       puts "Index: #{i}"
       pool = AllelePool.new({lab_index: i})
@@ -9,7 +9,6 @@ namespace :gene do
         puts pool.stats
         pool.breed_generations!
       end
-      pool.load_fittest_codons!
       puts pool.stats
     end
   end
@@ -26,7 +25,6 @@ namespace :gene do
       puts pool.stats
       pool.breed_generations!
     end
-    pool.load_fittest_codons!
     puts pool.stats
   end
 
@@ -61,10 +59,16 @@ namespace :gene do
       lab_types.each do |lab_type|
         fittest = lab_type.codons.by_fitness.first
         next unless fittest
+        puts fittest.stats
         fittest.update!(gilded: true)
         lab_type.codons.where.not(id: fittest.id).delete_all
       end
     end
+  end
+
+  task :top_gilded, [:count] => :environment do |t, args|
+    count = (args[:count] || "10").to_i
+    Codon.gilded.by_power.first(count).each { |g| puts g.stats }
   end
 
   task :reeval => :environment do
