@@ -21,9 +21,9 @@ class Breeder
     end_vals = [codon_1.val_end, codon_2.val_end].sort
     hours = [codon_1.hours_after_surgery, codon_2.hours_after_surgery].sort
 
-    value_start = mutate? ? nil : Random.rand(start_vals.first..start_vals.last)
-    value_end = mutate? ? nil : Random.rand(end_vals.first..end_vals.last)
     hours_after_surgery = mutate? ? nil : Random.rand(hours.first..hours.last)
+    value_start = mutate? ? nil : Random.rand(start_vals.first.to_f..start_vals.last.to_f)
+    value_end = mutate? ? nil : Random.rand(end_vals.first.to_f..end_vals.last.to_f)
 
     baby = Codon.new( lab_type: lab_type,
                       val_start: value_start,
