@@ -8,7 +8,7 @@ class Lab < ApplicationRecord
   validates_numericality_of :value
   validates_presence_of :patient, :date, :name_original, :name, :value, :value_original, :pid
 
-  default_scope -> { where(outlier: false) }
+  default_scope -> { where(outlier: false).where("hours_after_surgery < ?", 0) }
   scope :by_date, -> { order(date: :asc) }
   scope :by_value, -> { order(value: :asc) }
   scope :by_hours, -> { order(hours_after_surgery: :asc)}

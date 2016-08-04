@@ -47,6 +47,10 @@ namespace :gene do
         end
       end
     end
+
+    task :bad_dates => :environment do
+      Codon.unscoped.where("hours_after_surgery >= ?", 0).delete_all
+    end
   end
 
   task :shun_outliers => :environment do
