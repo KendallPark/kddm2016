@@ -109,8 +109,7 @@ class Codon < ApplicationRecord
 
     patient_dx = {}
 
-    lab_type.patient_cache.each do |patient_id_s, labs_by_id|
-      patient_id = patient_id_s.to_i
+    lab_type.patient_ids.each do |patient_id|
 
       lab_earlier = labs_earlier[patient_id]
       lab_later = labs_later[patient_id]
@@ -125,7 +124,7 @@ class Codon < ApplicationRecord
 
       next unless value
 
-      infected = lab_type.infected?(patient_id)
+      infected = Patient.infected?(patient_id)
       # if the start is less than the we evalute inclusively
       if val_start <= val_end && value >= val_start && value <= val_end
         dx = true
@@ -148,7 +147,16 @@ class Codon < ApplicationRecord
       end
 
     end
-    update!(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative, dx_cache: LabType.cache(patient_dx))
+    update!(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative, dx_cache: self.class.cache(patient_dx).to_s)
+  end
+
+  def self.cache(dx_by_pid)
+    temp = 0
+    dx_by_pid.each do |pid, value|
+      dx = value
+      temp |= (1 << (pid-1)) if dx
+    end
+    temp
   end
 
   def fitness!
