@@ -10,17 +10,23 @@ class Codon < ApplicationRecord
   scope :by_power, -> { where.not(fitness: nil).order("((true_positive + true_negative)*fitness) desc") }
   serialize :dx_cache, ActiveRecord::Coders::BignumSerializer
 
+  VALID_HOURS = [0, 1.day, 1.week, 2.weeks, 1.month, 2.months, 3.months, 6.months, 1.year, 2.years, 3.years, 5.years, 10.years].map {|i| i.to_f / 3600 * -1}
+
   before_validation do |codon|
     codon.lab_type ||= LabType.by_number_of_patients.first
 
     codon.val_start ||= Random.rand((lab_type.val_min-(lab_type.val_max-lab_type.val_min)*0.25).to_f..(lab_type.val_max+(lab_type.val_max-lab_type.val_min)*0.25).to_f)
     codon.val_end ||= Random.rand((lab_type.val_min-(lab_type.val_max-lab_type.val_min)*0.25).to_f..(lab_type.val_max+(lab_type.val_max-lab_type.val_min)*0.25).to_f)
 
-    codon.hours_after_surgery ||= Random.rand(lab_type.hours_min..lab_type.hours_max)
+    codon.hours_after_surgery ||= VALID_HOURS.sample
   end
 
   after_create do |codon|
     codon.evaluate!
+  end
+
+  def self.valid_hours
+    VALID_HOURS
   end
 
   def self.purge_invalid!
