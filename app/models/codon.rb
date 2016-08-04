@@ -46,7 +46,7 @@ class Codon < ApplicationRecord
   end
 
   def range
-    "#{val_start}-#{val_end}"
+    "#{val_start.round(1)}-#{val_end.round(1)}"
   end
 
   def stats
@@ -55,14 +55,14 @@ class Codon < ApplicationRecord
     // #{lab_type.name} n = #{lab_type.number_of_patients}
     ////////////////////////////////////////
     ID: #{id}
-    Days: #{days_after_surgery}
+    Days: #{days_after_surgery.round}
     Range: #{range}
-    Sens: #{(sensitivity*100).to_i}%
-    Spec: #{(specificity*100).to_i}%
-    +LR: #{lr_pos}
-    -LR: #{lr_neg}
-    PPV: #{(ppv*100).to_i}%
-    NPV: #{(npv*100).to_i}%
+    Sens: #{(sensitivity*100).round(1)}%
+    Spec: #{(specificity*100).round(1)}%
+    +LR: #{lr_pos.round(2)}
+    -LR: #{lr_neg.round(2)}
+    PPV: #{(ppv*100).round(1)}%
+    NPV: #{(npv*100).round(1)}%
     Fit: #{fitness}
 
     MESSAGE
