@@ -100,6 +100,10 @@ class AllelePool
   end
 
   def compute_fitness!(the_codons)
+    self.class.compute_fitness!(the_codons)
+  end
+
+  def self.compute_fitness!(the_codons)
     print "Computing Fitness"
     the_codons.each do |codon|
       print "."

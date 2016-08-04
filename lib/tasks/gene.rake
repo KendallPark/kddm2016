@@ -28,22 +28,14 @@ namespace :gene do
     puts pool.stats
   end
 
-  desc "something"
-  task :refit => :environment do
-    pool = AllelePool.new
-    Codon.where("updated_at <= ?", 2.hours.ago).in_batches(of: 100) do |codons|
-      puts "yay"
-      pool.compute_fitness!(codons)
-    end
-  end
-
-  desc "purge"
-  task :purge => :environment do
-    Codon.in_batches.each do |codons|
-      Codon.transaction do
-        codons.each do |codon|
-          deleted = codon.delete if codon.invalid?
-          puts "#{codon.id} deleted" if deleted
+  namespace :purge do
+    task :invalid => :environment do
+      Codon.in_batches.each do |codons|
+        Codon.transaction do
+          codons.each do |codon|
+            deleted = codon.delete if codon.invalid?
+            puts "#{codon.id} deleted" if deleted
+          end
         end
       end
     end
@@ -75,20 +67,36 @@ namespace :gene do
     Codon.gilded.by_power.first(count).each { |g| puts g.stats }
   end
 
-  task :reeval => :environment do
-    count = Codon.count
-    Parallel.each((0..(count/10).ceil), in_threads: 4) do |i|
-      ActiveRecord::Base.connection_pool.with_connection do
-        Codon.in_batches(of: 10, start: i*10).each do |codons|
-          puts "batch #{i*10}/#{count}"
-          Codon.transaction do
-            codons.each do |codon|
-              codon.evaluate!
-            end
-          end
+  namespace :reeval do
+    task :lab_types => :environment do
+      puts "Reevaluating LabTypes"
+      LabType.in_batches(of: 100) do |lab_types|
+        lab_types.each do |lab_type|
+          print "."
+          lab_type.reload.update_everything!
         end
       end
+      puts ""
     end
+
+    task :fitness => :environment do
+      puts "Reevaluating Fitness"
+      Codon.unscoped.in_batches(of: 100) do |codons|
+        AllelePool.compute_fitness!(codons)
+      end
+    end
+
+    task :codons => :environment do
+      puts "Reevaluating Codons"
+      Codon.unscoped.in_batches(of: 10).each do |codons|
+        codons.each do |codon|
+          print "."
+          codon.evaluate!
+        end
+      end
+      puts ""
+    end
+
   end
 
 end
