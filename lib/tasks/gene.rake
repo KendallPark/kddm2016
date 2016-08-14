@@ -1,5 +1,27 @@
 namespace :gene do
-  desc "Dumps the database to backups"
+
+  task :genes => :environment do
+    pool = GenePool.new
+    puts pool.stats
+    200.times do |i|
+      puts "Generation: #{i}"
+      pool.breed_generations!
+      puts pool.stats
+    end
+    puts pool.stats
+  end
+
+  task :cullgenes => :environment do
+    fittest = Gene.by_fitness.first
+    puts fittest.stats
+    fittest.update!(gilded: true)
+    Gene.where.not(id: fittest.id).delete_all
+  end
+
+  task :refit => :environment do
+    GenePool.compute_fitness!(Gene.all)
+  end
+
   task :codons, [:index] => :environment do |t, args|
     index = (args[:index] || 0).to_i
     (index...200).each do |i|
