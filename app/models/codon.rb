@@ -1,4 +1,7 @@
 class Codon < ApplicationRecord
+  include Biostats
+  include BitOptimizations
+
   belongs_to :lab_type
   validates :lab_type, presence: true
   validates_presence_of :val_start, :val_end, :hours_after_surgery
@@ -8,6 +11,7 @@ class Codon < ApplicationRecord
   scope :by_uniq_fitness, -> { where.not(fitness: nil).order(fitness: :desc).select('distinct on (fitness) *').to_a }
   scope :gilded, -> { unscoped.where(gilded: true) }
   scope :by_power, -> { where.not(fitness: nil).order("((true_positive + true_negative)*fitness) desc") }
+  scope :top_gilded_uniq, -> { find_by_sql("SELECT * FROM ( SELECT DISTINCT ON (lab_type_id) * FROM (lab_types INNER JOIN codons ON codons.lab_type_id = lab_types.id AND lab_types.number_of_patients >= 100 AND codons.fitness >= 0.1) ORDER BY lab_type_id, fitness DESC NULLS LAST ) sub ORDER BY fitness DESC NULLS LAST, lab_type_id") }
   serialize :dx_cache, ActiveRecord::Coders::BignumSerializer
 
   VALID_HOURS = [0, 1.day, 1.week, 2.weeks, 1.month, 2.months, 3.months, 6.months, 1.year, 2.years, 3.years, 5.years, 10.years].map {|i| i.to_f / 3600 * -1}
@@ -68,35 +72,6 @@ class Codon < ApplicationRecord
     MESSAGE
   end
 
-  def sensitivity
-    return 0 if (true_positive + false_negative) == 0
-    true_positive.to_f / (true_positive + false_negative)
-  end
-
-  def specificity
-    return 0 if (true_negative + false_positive) == 0
-    true_negative.to_f / (true_negative + false_positive)
-  end
-
-  def ppv
-    return 0 if (true_positive + false_positive) == 0
-    true_positive.to_f/(true_positive + false_positive)
-  end
-
-  def npv
-    return 0 if (true_negative + false_negative) == 0
-    true_negative.to_f/(true_negative + false_negative)
-  end
-
-  def lr_pos
-    return 0 if (1.0-specificity) == 0
-    sensitivity/(1.0-specificity)
-  end
-
-  def lr_neg
-    return 0 if specificity == 0
-    (1.0-sensitivity)/specificity
-  end
 
   def evaluate!
     true_positive = 0
@@ -147,16 +122,15 @@ class Codon < ApplicationRecord
       end
 
     end
-    update!(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative, dx_cache: self.class.cache(patient_dx).to_s)
+    update!(true_positive: true_positive, true_negative: true_negative, false_positive: false_positive, false_negative: false_negative, dx_cache: self.class.cache_hash_of_ids(patient_dx).to_s)
   end
 
-  def self.cache(dx_by_pid)
-    temp = 0
-    dx_by_pid.each do |pid, value|
-      dx = value
-      temp |= (1 << (pid-1)) if dx
-    end
-    temp
+  def dx_pos
+    dx_cache
+  end
+
+  def dx_neg
+    dx_cache^lab_type.patient_cache
   end
 
   def fitness!

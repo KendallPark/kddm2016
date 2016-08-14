@@ -1,9 +1,11 @@
 class LabType < ApplicationRecord
+  include BitOptimizations
   has_many :labs
   has_many :patients, through: :labs
   has_many :codons
   scope :by_number_of_patients, -> { order(number_of_patients: :desc) }
   scope :by_number_of_labs, -> { order(number_of_labs: :desc)}
+  scope :useful, -> { where("number_of_patients >= ?", 100).by_number_of_patients }
   validates_presence_of :val_max, :val_min, :hours_max, :hours_min
   validates_presence_of :patient_cache
   serialize :patient_cache, ActiveRecord::Coders::BignumSerializer
@@ -68,11 +70,7 @@ class LabType < ApplicationRecord
   end
 
   def cache_patients
-    temp = 0
-    patient_ids.each do |pid|
-      temp |= (1 << (pid-1))
-    end
-    temp
+    cache_array_of_ids(patient_ids)
   end
 
 end
