@@ -53,7 +53,7 @@ class AllelePool
     fittest = select_codons
     puts "Selected #{fittest.length}: #{fittest.pluck(:id).to_s}"
     fittest.length.times do
-      babies.concat(Breeder.new({codons: fittest}).breed! || [])
+      babies.concat(CodonBreeder.new({pool: fittest}).breed! || [])
     end
     compute_fitness!(babies)
     puts "Created #{babies.length}: #{babies.pluck(:id).to_s}"
