@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160802015003) do
+ActiveRecord::Schema.define(version: 20160819234701) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -19,27 +19,24 @@ ActiveRecord::Schema.define(version: 20160802015003) do
 
   create_table "codons", force: :cascade do |t|
     t.integer  "lab_type_id"
-    t.integer  "value_start_id"
-    t.integer  "value_end_id"
-    t.integer  "date_start_id"
-    t.integer  "date_end_id"
-    t.datetime "created_at",                          null: false
-    t.datetime "updated_at",                          null: false
+    t.datetime "created_at",                                       null: false
+    t.datetime "updated_at",                                       null: false
     t.integer  "true_positive"
     t.integer  "false_positive"
     t.integer  "true_negative"
     t.integer  "false_negative"
     t.decimal  "fitness"
-    t.decimal  "hours_after_surgery",                 null: false
-    t.decimal  "val_start",                           null: false
-    t.decimal  "val_end",                             null: false
+    t.decimal  "hours_after_surgery",                              null: false
+    t.decimal  "val_start",                                        null: false
+    t.decimal  "val_end",                                          null: false
     t.string   "dx_cache"
     t.boolean  "gilded",              default: false
-    t.index ["date_end_id"], name: "index_codons_on_date_end_id", using: :btree
-    t.index ["date_start_id"], name: "index_codons_on_date_start_id", using: :btree
+    t.string   "ever_cache"
+    t.string   "ratio_cache"
+    t.float    "threshold",           default: 0.6392924348840148
+    t.string   "crossing_cache"
+    t.string   "within_days_cache"
     t.index ["lab_type_id"], name: "index_codons_on_lab_type_id", using: :btree
-    t.index ["value_end_id"], name: "index_codons_on_value_end_id", using: :btree
-    t.index ["value_start_id"], name: "index_codons_on_value_start_id", using: :btree
   end
 
   create_table "codons_genes", id: false, force: :cascade do |t|
@@ -51,9 +48,19 @@ ActiveRecord::Schema.define(version: 20160802015003) do
 
   create_table "genes", force: :cascade do |t|
     t.float    "fitness"
-    t.integer  "generation", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "created_at",                     null: false
+    t.datetime "updated_at",                     null: false
+    t.string   "dx_cache"
+    t.hstore   "sequence",                       null: false
+    t.integer  "true_positive"
+    t.integer  "true_negative"
+    t.integer  "false_positive"
+    t.integer  "false_negative"
+    t.boolean  "gilded",         default: false
+    t.string   "type"
+    t.integer  "size"
+    t.string   "family"
+    t.string   "signature"
   end
 
   create_table "lab_types", force: :cascade do |t|
@@ -84,19 +91,21 @@ ActiveRecord::Schema.define(version: 20160802015003) do
     t.integer  "lab_type_id",                         null: false
     t.decimal  "hours_after_surgery",                 null: false
     t.boolean  "outlier",             default: false
+    t.boolean  "test_data",           default: false
     t.index ["lab_type_id"], name: "index_labs_on_lab_type_id", using: :btree
     t.index ["patient_id"], name: "index_labs_on_patient_id", using: :btree
   end
 
   create_table "patients", force: :cascade do |t|
     t.integer  "pid",            null: false
-    t.boolean  "infection",      null: false
+    t.boolean  "infection"
     t.string   "sex",            null: false
     t.datetime "surgery_time",   null: false
     t.datetime "infection_time"
     t.date     "dob",            null: false
     t.datetime "created_at",     null: false
     t.datetime "updated_at",     null: false
+    t.float    "age_at_surgery"
   end
 
   add_foreign_key "codons", "lab_types"

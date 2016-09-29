@@ -4,17 +4,39 @@ class Gene < ApplicationRecord
 
   has_and_belongs_to_many :codons
   serialize :sequence, ActiveRecord::Coders::NestedHstore
+  serialize :dx_cache, ActiveRecord::Coders::BignumSerializer
 
-  default_scope -> { where(gilded: false) }
+  default_scope -> { where(gilded: false, family: nil) }
   scope :by_fitness, -> { where.not(fitness: nil).order(fitness: :desc) }
-  scope :by_uniq_fitness, -> { where.not(fitness: nil).order(fitness: :desc).select('distinct on (fitness) *').to_a }
+  scope :by_uniq_fitness, -> { where.not(fitness: nil).order(fitness: :desc, size: :asc).select('distinct on (fitness) *').to_a }
+  # scope :by_uniq_sig, -> { find_by_sql("SELECT * FROM ( SELECT DISTINCT ON (signature) * FROM genes WHERE (signature IS NOT NULL) ORDER BY signature DESC, fitness DESC, size ASC NULLS LAST ) sub ORDER BY fitness DESC, size ASC NULLS LAST, signature") }
 
+  scope :by_sensitivity, -> { where.not(fitness: nil).order("true_positive / (true_positive + false_negative)") }
+  scope :by_specificity, -> { where.not(fitness: nil).order("true_negative / (true_negative + false_positive)") }
+  scope :sizes, -> { where.not(size: nil).order(:size).group(:size).distinct.pluck(:size) }
 
   THRESHOLD = 1
+  VALID_STRATS = ["snapshot", "ever_in_range", "percent_labs_in_range", "crosses_into_range", "is_male", "is_female", "within_days"]
 
-  attr_accessor :codon_mutations, :weight_mutations
+  attr_accessor :codon_mutations, :weight_mutations, :starting_codon, :starting_strat
 
   before_validation do |gene|
+    create_gene(gene)
+  end
+
+  after_create do |gene|
+    gene.evaluate!
+  end
+
+  def self.by_uniq_sig(size=nil)
+    if size
+      find_by_sql("SELECT * FROM ( SELECT DISTINCT ON (signature) * FROM genes WHERE (signature IS NOT NULL AND fitness IS NOT NULL AND size = #{size}) ORDER BY signature DESC, fitness DESC, size ASC NULLS LAST ) sub ORDER BY fitness DESC, size ASC NULLS LAST, signature")
+    else
+      find_by_sql("SELECT * FROM ( SELECT DISTINCT ON (signature) * FROM genes WHERE (signature IS NOT NULL AND fitness IS NOT NULL) ORDER BY signature DESC, fitness DESC, size ASC NULLS LAST ) sub ORDER BY fitness DESC, size ASC NULLS LAST, signature")
+    end
+  end
+
+  def create_gene(gene)
     gene.codon_mutations ||= []
     gene.weight_mutations ||= []
     if gene.sequence
@@ -23,13 +45,7 @@ class Gene < ApplicationRecord
       end
       gene.codon_mutations.each do |lab_type_id|
         codon_id = gene.sequence[lab_type_id]["codon_id"]
-        old_codon = Codon.unscoped.find(codon_id)
-        new_codon = old_codon.dup
-        randomized_value = [:val_start, :val_end, :hours_after_surgery].sample
-        new_codon[randomized_value] = nil
-        unless new_codon.save
-          new_codon = Codon.unscoped.find_by(val_start: new_codon.val_start, val_end: new_codon.val_end, hours_after_surgery: new_codon.hours_after_surgery)
-        end
+        new_codon = gene.mutate_codon(codon_id)
         gene.sequence[lab_type_id] = codon_cache(new_codon.reload).merge(weight: gene.sequence[lab_type_id]["weight"])
       end
     else
@@ -43,8 +59,16 @@ class Gene < ApplicationRecord
     end
   end
 
-  after_create do |gene|
-    gene.evaluate!
+  def mutate_codon(codon_id)
+    old_codon = Codon.unscoped.find(codon_id)
+    new_codon = old_codon.dup
+    randomized_value = [:val_start, :val_end, :hours_after_surgery].sample
+    new_codon[randomized_value] = nil
+    new_codon.threshold = nil
+    unless new_codon.save
+      new_codon = Codon.unscoped.find_by(val_start: new_codon.val_start, val_end: new_codon.val_end, hours_after_surgery: new_codon.hours_after_surgery)
+    end
+    new_codon
   end
 
   def recache_codons!
@@ -57,14 +81,23 @@ class Gene < ApplicationRecord
   end
 
   def codon_cache(codon)
+    if codon.within_days_cache == 0
+      print "!"
+      codon.evaluate!
+      codon.reload
+    end
     {
       lab_type_id: codon.lab_type_id,
       lab_name: codon.lab_type.name,
       codon_id: codon.id,
-      dx_pos: codon.dx_pos,
-      dx_neg: codon.dx_neg,
       range: codon.range,
       days_after_surgery: codon.days_after_surgery,
+      dx_pos: codon.dx_pos,
+      ever_cache: codon.ever_cache,
+      crossing_cache: codon.crossing_cache,
+      within_days_cache: codon.within_days_cache,
+      ratio_cache: codon.ratio_cache,
+      threshold: codon.threshold,
     }.with_indifferent_access
   end
 
@@ -110,7 +143,11 @@ class Gene < ApplicationRecord
 
   def fitness!
     evaluate! unless true_positive && true_negative && false_positive && false_negative
-    fitness = yield(true_positive, true_negative, false_positive, false_negative, sensitivity, specificity, ppv, npv, lr_pos, lr_neg, accuracy)
+    fitness = yield(true_positive, true_negative, false_positive, false_negative, sensitivity, specificity, ppv, npv, lr_pos, lr_neg, accuracy, size)
+    if fitness == :destroy
+      destroy!
+      return
+    end
     update!(fitness: fitness)
     fitness
   end
@@ -148,6 +185,10 @@ class Gene < ApplicationRecord
 
     message << "\n"
     message
+  end
+
+  def gild!
+    update!(gilded: true)
   end
 
 end

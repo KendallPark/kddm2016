@@ -5,7 +5,7 @@ class LabType < ApplicationRecord
   has_many :codons
   scope :by_number_of_patients, -> { order(number_of_patients: :desc) }
   scope :by_number_of_labs, -> { order(number_of_labs: :desc)}
-  scope :useful, -> { where("number_of_patients >= ?", 100).by_number_of_patients }
+  scope :useful, -> { where("number_of_patients >= ?", 10).by_number_of_patients }
   validates_presence_of :val_max, :val_min, :hours_max, :hours_min
   validates_presence_of :patient_cache
   serialize :patient_cache, ActiveRecord::Coders::BignumSerializer
